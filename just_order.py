@@ -57,29 +57,33 @@ def init_db():
 
 init_db()
 
-# === WHATSAPP BILL UTILITY FUNCTION ===
+# === WHATSAPP BILL ENGINE FUNCTION ===
 def generate_whatsapp_link(phone, name, cart_summary, total_bill, delivery_charge, final_grand_total, pay_status):
     bill_text = f"🚨 *JUST ORDER - INVOICE* 🚨\n\n"
     bill_text += f"👤 *Customer:* {name}\n"
+    bill_text += f"📅 *Date/Time:* {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
     bill_text += f"--------------------------------\n"
     bill_text += f"📦 *Items Ordered:*\n{cart_summary}\n"
     bill_text += f"--------------------------------\n"
     bill_text += f"💵 *Items Total:* ₹{total_bill}\n"
     bill_text += f"🛵 *Delivery Charge:* ₹{delivery_charge}\n"
     bill_text += f"💰 *Grand Total:* ₹{final_grand_total}\n"
-    bill_text += f"💳 *Payment:* {pay_status}\n\n"
+    bill_text += f"💳 *Payment Status:* {pay_status}\n\n"
     bill_text += f"Thank you for ordering with *Just Order*! 📍"
     
     encoded_text = urllib.parse.quote(bill_text)
+    
     if not phone.startswith('+') and not phone.startswith('91') and len(phone) == 10:
         phone = "91" + phone
+        
     return f"https://wa.me/{phone}?text={encoded_text}"
 
 
-# === Streamlit Page Design ===
+# === Streamlit Page Setup ===
 st.set_page_config(page_title="Just Order - Food & Grocery", page_icon="📍", layout="wide")
 
-# === 😎 SWAG LOGO GENERATOR ===
+
+# === 😎 SWAG LOGO COMPONENT ===
 def render_swag_logo():
     logo_html = """
     <div style="
@@ -121,11 +125,11 @@ if app_mode == "🛒 Customer App":
     conn.close()
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Just Order v5.4 • Scale Edition")
+st.sidebar.caption("Just Order v5.5 • Mandatory Registry Edition")
 
 
 # ==================================================
-# 🛠️ MODE A: OWNER ADMIN DASHBOARD (With Advanced Edit & Delete)
+# 🛠️ MODE A: OWNER ADMIN DASHBOARD
 # ==================================================
 if app_mode == "🔑 Owner Admin Dashboard":
     render_swag_logo()
@@ -136,11 +140,8 @@ if app_mode == "🔑 Owner Admin Dashboard":
     if password == "suraj123":
         st.success("Access Granted! Welcome back, Founder.")
         
-        tab_add_shop, tab_add_item, tab_edit_item, tab_delete_shop, tab_view_orders = st.tabs([
-            "➕ Add New Shop", "📸 Upload New Items", "✏️ Change Item Name/Price", "🚨 Delete Shop (Danger Zone)", "📊 View Orders"
-        ])
+        tab_add_shop, tab_add_item, tab_edit_item, tab_view_orders = st.tabs(["➕ Add New Shop", "📸 Upload New Items", "✏️ Change Item Name/Price", "📊 View Orders & WhatsApp Bill"])
         
-        # 1. Add Shop
         with tab_add_shop:
             st.subheader("Register a New Local Shop/Merchant")
             new_shop_name = st.text_input("Enter Shop/Hotel Name:")
@@ -155,9 +156,8 @@ if app_mode == "🔑 Owner Admin Dashboard":
                     conn.close()
                     st.success(f"Registered: **{new_shop_name}**!")
                 
-        # 2. Add Items
         with tab_add_item:
-            st.subheader("Add Products to Shop")
+            st.subheader("Add Products by Uploading Local Image File")
             conn = sqlite3.connect("just_order_v5.db")
             cursor = conn.cursor()
             cursor.execute("SELECT id, name, shop_type FROM shops")
@@ -165,10 +165,10 @@ if app_mode == "🔑 Owner Admin Dashboard":
             
             if existing_shops:
                 shop_map = {f"{s[1]} ({s[2]})": s[0] for s in existing_shops}
-                target_shop = st.selectbox("Select Target Shop:", list(shop_map.keys()), key="add_item_shop_select")
+                target_shop = st.selectbox("Select Target Shop:", list(shop_map.keys()))
                 target_shop_id = shop_map[target_shop]
                 
-                new_item_name = st.text_input("Enter Item Name:", placeholder="e.g. Rasgulla, Mustard Oil 1L")
+                new_item_name = st.text_input("Enter Item Name:", placeholder="e.g. Rasgulla, Pizza")
                 new_item_price = st.number_input("Enter Price (INR):", min_value=1, value=10)
                 uploaded_file = st.file_uploader("Choose a Photo (JPG/PNG):", type=["jpg", "png", "jpeg"])
                 
@@ -186,82 +186,37 @@ if app_mode == "🔑 Owner Admin Dashboard":
                         cursor.execute("INSERT INTO items (shop_id, item_name, price, item_image) VALUES (?, ?, ?, ?)", 
                                        (target_shop_id, new_item_name, new_item_price, saved_image_path))
                         conn.commit()
-                        st.success(f"Added **{new_item_name}** into Database!")
-            else:
-                st.info("Pehle ek dukaan register kijiye.")
+                        st.success(f"Added **{new_item_name}** successfully!")
             conn.close()
 
-        # 🌟 FEATURE 1 FIXED: SHOP-WISE ITEM FILTER AND MODIFY TAB
         with tab_edit_item:
-            st.subheader("✏️ Modify/Change Item Details by Selecting Shop First")
+            st.subheader("✏️ Change Existing Item Name or Price")
             conn = sqlite3.connect("just_order_v5.db")
             cursor = conn.cursor()
             
-            cursor.execute("SELECT id, name, shop_type FROM shops")
-            all_shops_for_edit = cursor.fetchall()
+            cursor.execute("SELECT id, item_name, price FROM items")
+            all_current_items = cursor.fetchall()
             
-            if all_shops_for_edit:
-                edit_shop_map = {f"{s[1]} ({s[2]})": s[0] for s in all_shops_for_edit}
-                selected_shop_label = st.selectbox("Step 1: Select Shop Name:", list(edit_shop_map.keys()), key="edit_item_shop_select")
-                selected_shop_id_edit = edit_shop_map[selected_shop_label]
+            if all_current_items:
+                item_map = {f"{it[1]} (Current: ₹{it[2]})": it[0] for it in all_current_items}
+                selected_item_label = st.selectbox("Choose Item to Modify:", list(item_map.keys()))
+                target_item_id = item_map[selected_item_label]
                 
-                # Filter items belonging ONLY to this shop
-                cursor.execute("SELECT id, item_name, price FROM items WHERE shop_id=?", (selected_shop_id_edit,))
-                filtered_items = cursor.fetchall()
+                cursor.execute("SELECT item_name, price FROM items WHERE id=?", (target_item_id,))
+                current_name_db, current_price_db = cursor.fetchone()
                 
-                if filtered_items:
-                    item_map = {f"{it[1]} (Current: ₹{it[2]})": it[0] for it in filtered_items}
-                    selected_item_label = st.selectbox("Step 2: Choose Item to Change:", list(item_map.keys()))
-                    target_item_id = item_map[selected_item_label]
-                    
-                    cursor.execute("SELECT item_name, price FROM items WHERE id=?", (target_item_id,))
-                    current_name_db, current_price_db = cursor.fetchone()
-                    
-                    updated_name = st.text_input("Change Item Name To:", value=current_name_db)
-                    updated_price = st.number_input("Change Price (INR) To:", min_value=1, value=current_price_db)
-                    
-                    if st.button("💾 Save Modified Updates", type="primary"):
-                        cursor.execute("UPDATE items SET item_name=?, price=? WHERE id=?", (updated_name, updated_price, target_item_id))
-                        conn.commit()
-                        st.success(f"Success! Item changes updated in Database.")
-                else:
-                    st.warning("⚠️ Is dukan ke andar abhi koi item nahi joda gaya hai!")
+                updated_name = st.text_input("Edit Item Name:", value=current_name_db)
+                updated_price = st.number_input("Edit Price (INR):", min_value=1, value=current_price_db)
+                
+                if st.button("💾 Save Changes", type="primary"):
+                    cursor.execute("UPDATE items SET item_name=?, price=? WHERE id=?", (updated_name, updated_price, target_item_id))
+                    conn.commit()
+                    st.success(f"Successfully updated to: **{updated_name}** - **₹{updated_price}**")
+                    st.rerun()
             else:
-                st.info("No shops available.")
+                st.info("No items found to edit yet.")
             conn.close()
             
-        # 🌟 FEATURE 2 EXPLICIT: SHOP DELETE OPTION (DANGER ZONE)
-        with tab_delete_shop:
-            st.subheader("🚨 Delete Local Shop from Database")
-            st.write("Warning: Kisi dukan ko delete karne se uske andar ke saare menu items bhi automatic delete ho jayenge!")
-            
-            conn = sqlite3.connect("just_order_v5.db")
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, name, shop_type FROM shops")
-            all_shops_for_del = cursor.fetchall()
-            
-            if all_shops_for_del:
-                del_shop_map = {f"{s[1]} ({s[2]})": s[0] for s in all_shops_for_del}
-                selected_shop_del = st.selectbox("Select Shop to Permanently Delete:", list(del_shop_map.keys()))
-                target_shop_id_del = del_shop_map[selected_shop_del]
-                
-                # Double verification safety check box
-                confirm_del = st.checkbox(f"Yes, I want to completely delete {selected_shop_del} from Just Order.")
-                
-                if st.button("🗑️ Permanently Delete Shop", type="primary"):
-                    if confirm_del:
-                        # 1. Delete items of that shop first
-                        cursor.execute("DELETE FROM items WHERE shop_id=?", (target_shop_id_del,))
-                        # 2. Delete the shop itself
-                        cursor.execute("DELETE FROM shops WHERE id=?", (target_shop_id_del,))
-                        conn.commit()
-                        st.success(f"🗑️ Successfully Deleted **{selected_shop_del}** and all its food/grocery items!")
-                    else:
-                        st.error("Please tick the confirmation checkbox before clicking delete.")
-            else:
-                st.info("No registered shops found to delete.")
-            conn.close()
-
         with tab_view_orders:
             st.subheader("📊 Live Order Ledger")
             conn = sqlite3.connect("just_order_v5.db")
@@ -272,19 +227,35 @@ if app_mode == "🔑 Owner Admin Dashboard":
             if orders_rows:
                 for row in orders_rows:
                     o_id, o_by, d_to, addr, amt, s_type, ob_req, p_status, o_status, o_time = row
-                    with st.expander(f"📦 Order #{o_id} for {d_to} - Total: ₹{amt}"):
-                        st.write(f"**Address:** {addr} | **Status:** `{p_status}`")
-                        if "COD" in p_status or "Cash" in p_status:
+                    
+                    with st.expander(f"📦 Order #{o_id} for {d_to} - Total: ₹{amt} ({p_status})"):
+                        st.write(f"**From (Person A):** {o_by}")
+                        st.write(f"**To (Person B):** {d_to}")
+                        st.write(f"**Address:** {addr}")
+                        st.write(f"**Time:** {o_time}")
+                        
+                        if "COD" in p_status:
                             phone_num = d_to.split("-")[-1].strip() if "-" in d_to else "0000000000"
-                            manual_wa_url = generate_whatsapp_link(phone_num, d_to, "Package Delivered", amt-30, 30, amt, "✅ Paid Cash")
+                            manual_wa_url = generate_whatsapp_link(
+                                phone=phone_num, 
+                                name=d_to, 
+                                cart_summary=f"• Package Hand-Delivered (Order #{o_id})", 
+                                total_bill=amt-30, 
+                                delivery_charge=30, 
+                                final_grand_total=amt, 
+                                pay_status="✅ Paid Cash to Delivery Boy"
+                            )
                             st.markdown(f'<a href="{manual_wa_url}" target="_blank" style="background-color:#007bff; color:white; padding:8px 16px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;">🟢 Delivery Boy: Send Cash Bill on WhatsApp</a>', unsafe_allow_html=True)
             else:
                 st.info("No orders received yet.")
             conn.close()
+                
+    elif password != "":
+        st.error("Wrong Password!")
 
 
 # ==========================================
-# 🛒 MODE B: THE MAIN CUSTOMER APP
+# 🛒 MODE B: THE CUSTOMER MAIN APP
 # ==========================================
 else:
     render_swag_logo()
@@ -317,17 +288,17 @@ else:
                 for idx, item in enumerate(f_items):
                     i_id, i_name, i_price, i_img = item
                     col = c1 if idx % 2 == 0 else c2
+                    
                     with col:
                         if i_img and os.path.exists(i_img):
                             st.image(i_img, caption=i_name, width=220)
                         else:
                             st.image("https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500&auto=format&fit=crop&q=60", caption="Just Order Special", width=220)
+                            
                         qty = st.number_input(f"{i_name} (₹{i_price})", min_value=0, max_value=10, key=f"f_item_{i_id}")
                         if qty > 0:
                             cart_food[i_name] = {"price": i_price, "qty": qty, "type": "Zomato (Food)"}
                         st.markdown("<br>", unsafe_allow_html=True)
-        else:
-            st.info("Admin dashboard mein jaakar pehle Food dukan register karein.")
         conn.close()
 
     # --- TAB 2: GROCERY ENGINE ---
@@ -355,17 +326,17 @@ else:
                 for idx, item in enumerate(g_items):
                     i_id, i_name, i_price, i_img = item
                     col = c1 if idx % 2 == 0 else c2
+                    
                     with col:
                         if i_img and os.path.exists(i_img):
                             st.image(i_img, caption=i_name, width=220)
                         else:
                             st.image("https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60", caption="Just Order Grocery", width=220)
+                            
                         qty = st.number_input(f"{i_name} (₹{i_price})", min_value=0, max_value=10, key=f"g_item_{i_id}")
                         if qty > 0:
                             cart_grocery[i_name] = {"price": i_price, "qty": qty, "type": "Blinkit (Grocery)"}
                         st.markdown("<br>", unsafe_allow_html=True)
-        else:
-            st.info("Admin dashboard mein jaakar pehle Grocery dukan register karein.")
         conn.close()
 
     # --- TAB 3: RATINGS ---
@@ -389,10 +360,11 @@ else:
                 new_rating = ((current_rating * current_count) + stars) / new_count
                 cursor.execute("UPDATE shops SET rating=?, rating_count=? WHERE id=?", (new_rating, new_count, target_shop_id))
                 conn.commit()
-                st.success(f"Thank you! You rated **{target_shop_name}** with {stars} Stars.")
+                st.success(f"Thank you! Rated successfully.")
         conn.close()
 
-    # --- GLOBAL CART COMBINATION & CHECKOUT ---
+
+    # --- GLOBAL CART SUMMARY & CHECKOUT ---
     final_cart = {**cart_food, **cart_grocery}
 
     if final_cart:
@@ -414,41 +386,58 @@ else:
         grand_total = total_items_price + delivery_fee
         
         st.write(f"Items Total: ₹{total_items_price}")
-        st.write(f"🛵 **Delivery Charge: ₹{delivery_fee}**")
-        st.write(f"### **Grand Total Bill: ₹{grand_total} (Tax Incl.)**")
+        st.write(f"🛵 **Fixed Delivery Charge: ₹{delivery_fee}**")
+        st.write(f"### **Grand Total Bill: ₹{grand_total}**")
         
+        # 🌟 MANDATORY INPUT FIELDS (RED ASTERISK MARKED)
         st.markdown("---")
-        st.subheader("🛡️ Safety & Quality Check")
-        open_box_delivery = st.checkbox("📦 Request Open Box Delivery (Highly Recommended for Grocery/Veggies!)")
-        
         st.subheader("📍 Contact & Address Registry")
-        person_a = st.text_input("Sender Name & Phone (Person A):", placeholder="Suraj Kumar - 9876543210")
-        is_gift = st.checkbox("🎁 Sending this order to someone else? (Deliver to Person B)")
+        
+        c_a1, c_a2 = st.columns(2)
+        with c_a1:
+            person_a_name = st.text_input("Sender Name (Person A) *", placeholder="e.g. Suraj Kumar")
+        with c_a2:
+            person_a_phone = st.text_input("Sender 10-Digit Mobile Number *", placeholder="e.g. 9876543210", max_chars=10)
+            
+        is_gift = st.checkbox("🎁 Deliver to someone else? (Person B)")
         
         if is_gift:
-            person_b = st.text_input("Receiver Name & Phone (Person B):", placeholder="Amit Kumar - 8877665544")
-            address = st.text_area("Person B Address & Village Landmarks:")
+            c_b1, c_b2 = st.columns(2)
+            with c_b1:
+                person_b_name = st.text_input("Receiver Name (Person B) *", placeholder="e.g. Amit Kumar")
+            with c_b2:
+                person_b_phone = st.text_input("Receiver 10-Digit Mobile Number *", placeholder="e.g. 8877665544", max_chars=10)
+            address = st.text_area("Person B Delivery Address & Landmarks *", placeholder="e.g. Kalyanpur, Near Middle School, Yellow Gate")
         else:
-            person_b = person_a
-            address = st.text_area("Your Delivery Address:")
+            person_b_name = person_a_name
+            person_b_phone = person_a_phone
+            address = st.text_area("Your Full Delivery Address & Landmarks *", placeholder="e.g. Rampur Gaon, Near Shiv Temple")
             
         payment_choice = st.radio("Select Payment Mode:", ["UPI Online Instant Pay", "Cash on Delivery (COD)"])
         
-        phone_to_send = person_b.split("-")[-1].strip() if "-" in person_b else "0000000000"
-        auto_wa_url = generate_whatsapp_link(phone_to_send, person_b, cart_summary_text, total_items_price, delivery_fee, grand_total, "✅ Paid via UPI Online")
+        # Build text package validation data
+        final_customer_registry = f"{person_b_name} - {person_b_phone}"
         
         if payment_choice == "UPI Online Instant Pay":
-            upi_url = f"upi://pay?pa=justorder@upi&pn=JustOrderV2&am={grand_total}&cu=INR"
-            st.markdown(f'<a href="{upi_url}" style="background-color:#28a745; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block;">🚀 Pay ₹{grand_total} Now</a>', unsafe_allow_html=True)
+            my_real_upi = "YOUR_UPI_ID_HERE@ybl" # 🌟 Line 317: Apni real GPay/PhonePe ID yahan daalein
+            upi_url = f"upi://pay?pa={my_real_upi}&pn=Just+Order&am={grand_total}&cu=INR"
+            st.markdown(f'<a href="{upi_url}" style="background-color:#28a745; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block;">🚀 Pay ₹{grand_total} via UPI</a>', unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
+        # === PLACE ORDER TRIGGER WITH ENFORCED VALIDATION RULES ===
         if st.button("🏁 Place Final Just Order", type="primary"):
-            if not person_a or not address or (is_gift and not person_b):
-                st.error("Fields khali hain! Please address aur phone number bharo.")
+            # 🛡️ Rule 1: Master empty checks
+            if not person_a_name or not person_a_phone or not address or (is_gift and (not person_b_name or not person_b_phone)):
+                st.error("❌ Sabhi mandatory (*) fields ko bharna zaroori hai! Kripya naam, mobile aur address check karein.")
+            
+            # 🛡️ Rule 2: Phone Number length check (Must be exactly 10 digits)
+            elif len(person_a_phone) != 10 or not person_a_phone.isdigit() or (is_gift and (len(person_b_phone) != 10 or not person_b_phone.isdigit())):
+                st.error("❌ Mobile number galat hai! Kripya pure 10-digit ka valid mobile number enter karein.")
+                
             else:
+                # Agar saari details sahi hain, tabhi order save hoga
                 time_stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                open_box_flag = 1 if open_box_delivery else 0
                 pay_status_db = "Online Paid" if payment_choice == "UPI Online Instant Pay" else "COD Pending"
                 
                 conn = sqlite3.connect("just_order_v5.db")
@@ -456,13 +445,15 @@ else:
                 cursor.execute("""
                     INSERT INTO orders (ordered_by, deliver_to, delivery_address, total_amount, service_type, open_box_required, payment_status, order_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (person_a, person_b, address, grand_total, service_type_tag, open_box_flag, pay_status_db, time_stamp))
+                """, (f"{person_a_name} - {person_a_phone}", final_customer_registry, address, grand_total, service_type_tag, 0, pay_status_db, time_stamp))
                 conn.commit()
                 conn.close()
                 
                 st.success(f"🎉 Awesome! Your order has been registered successfully.")
                 st.balloons()
                 
+                # ONLINE AUTOMATIC REDIRECTION BUTTON TRIGGER
                 if payment_choice == "UPI Online Instant Pay":
-                    st.info("📲 Redirecting to WhatsApp to send automatic digital bill...")
+                    auto_wa_url = generate_whatsapp_link(person_b_phone, final_customer_registry, cart_summary_text, total_items_price, delivery_fee, grand_total, "✅ Paid via UPI Online")
+                    st.info("📲 Redirecting to send automatic digital bill on WhatsApp...")
                     st.markdown(f'<a href="{auto_wa_url}" target="_blank" style="background-color:#25D366; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;">💬 Open WhatsApp & Send Bill Instantly</a>', unsafe_allow_html=True)
