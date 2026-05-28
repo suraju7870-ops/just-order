@@ -85,7 +85,7 @@ def generate_user_whatsapp_link(phone, name, items_summary, grand_total, address
 
 
 # === Streamlit Config ===
-st.set_page_config(page_title="Just Order - Viral Marketing", page_icon="📍", layout="wide")
+st.set_page_config(page_title="Just Order - Footer Edition", page_icon="📍", layout="wide")
 
 # 😎 SWAG LOGO COMPONENT
 def render_swag_logo():
@@ -97,22 +97,20 @@ def render_swag_logo():
     </div>
     """, unsafe_allow_html=True)
 
-# 🌟 THE EXPLICIT NEW FEATURE: CUSTOM SWAG SOCIAL MEDIA SHARING COMPONENT
+# 📢 SOCIAL MEDIA SHARING COMPONENT (AB ISKO NICHE CALL KARENGE)
 def render_social_share_buttons():
-    # Aapka exact live link jo image_12.png me chal raha h
     app_url = "https://just-order-cg2hmpqhgebmvbdkjvgynh.streamlit.app/"
     share_text = "Ab market ka khana aur ghar ka rashan mangwao seedhe ghar baithe Just Order App se! Try karo abhi: "
     
-    # Social Share Links Generation
     whatsapp_share = f"https://api.whatsapp.com/send?text={urllib.parse.quote(share_text + app_url)}"
     facebook_share = f"https://www.facebook.com/sharer/sharer.php?u={urllib.parse.quote(app_url)}"
     
     share_html = f"""
-    <div style="margin-bottom: 25px; background-color: #f8f9fa; padding: 15px; border-radius: 10px; display: inline-block; box-shadow: 0px 2px 5px rgba(0,0,0,0.05);">
-        <strong style="color: #333; font-family: sans-serif; font-size: 14px; margin-right: 15px; display: block; margin-bottom: 10px;">📢 Apne Doston aur Parivar ko Share Karein:</strong>
-        <a href="{whatsapp_share}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 16px; text-decoration: none; border-radius: 20px; font-weight: bold; font-family: sans-serif; font-size: 13px; margin-right: 8px; display: inline-block;">🟢 WhatsApp Share</a>
-        <a href="{facebook_share}" target="_blank" style="background-color: #1877F2; color: white; padding: 8px 16px; text-decoration: none; border-radius: 20px; font-weight: bold; font-family: sans-serif; font-size: 13px; margin-right: 8px; display: inline-block;">🔵 Facebook Share</a>
-        <button onclick="navigator.clipboard.writeText('{app_url}'); alert('App Link Copied! Ab aap ise Instagram Story ya Bio me paste kar sakte hain. 😎');" style="background-color: #E1306C; color: white; padding: 8px 16px; border: none; border-radius: 20px; font-weight: bold; font-family: sans-serif; font-size: 13px; cursor: pointer; display: inline-block;">🟣 Copy for Instagram</button>
+    <div style="margin-top: 40px; margin-bottom: 20px; background-color: #f8f9fa; padding: 18px; border-radius: 10px; box-shadow: 0px 2px 5px rgba(0,0,0,0.05); text-align: center;">
+        <strong style="color: #333; font-family: sans-serif; font-size: 15px; display: block; margin-bottom: 12px;">📢 Just Order App Apne Doston aur Parivar ko Share Karein:</strong>
+        <a href="{whatsapp_share}" target="_blank" style="background-color: #25D366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 20px; font-weight: bold; font-family: sans-serif; font-size: 13px; margin-right: 8px; display: inline-block;">🟢 WhatsApp Share</a>
+        <a href="{facebook_share}" target="_blank" style="background-color: #1877F2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 20px; font-weight: bold; font-family: sans-serif; font-size: 13px; margin-right: 8px; display: inline-block;">🔵 Facebook Share</a>
+        <button onclick="navigator.clipboard.writeText('{app_url}'); alert('App Link Copied! Ab aap ise Instagram Story ya Bio me paste kar sakte hain. 😎');" style="background-color: #E1306C; color: white; padding: 10px 20px; border: none; border-radius: 20px; font-weight: bold; font-family: sans-serif; font-size: 13px; cursor: pointer; display: inline-block;">🟣 Copy for Instagram</button>
     </div>
     """
     st.markdown(share_html, unsafe_allow_html=True)
@@ -124,7 +122,7 @@ app_mode = st.sidebar.selectbox("Select Screen Profile:", ["🛒 Customer App", 
 
 
 # ==========================================================
-# 🏪 PROFILE 1: CONTROL DASHBOARD (Role-Based Control)
+# 🏪 PROFILE 1: CONTROL DASHBOARD
 # ==========================================================
 if app_mode == "🏪 Merchant & Delivery Control Dashboard":
     render_swag_logo()
@@ -229,13 +227,10 @@ if app_mode == "🏪 Merchant & Delivery Control Dashboard":
 
 
 # ==========================================================
-# 🛒 PROFILE 2: THE MAIN CUSTOMER INTERFACE (With Social Share)
+# 🛒 PROFILE 2: THE MAIN CUSTOMER INTERFACE
 # ==========================================================
 else:
     render_swag_logo()
-    
-    # 🌟 NEW SOCIAL SHARE PANEL ADDED RIGHT HERE!
-    render_social_share_buttons()
     
     st.write("### *Ek hi App se Sab Kuch Mangwayein!*")
     
@@ -344,3 +339,7 @@ else:
                 st.markdown(f'<a href="{merchant_wa_link}" target="_blank" style="background-color:#25D366; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block; font-size:16px;">💬 Send Live Order Alert to {selected_shop_name}</a>', unsafe_allow_html=True)
             else:
                 st.error("Please fill details!")
+
+    # 🌟 NEW LOGIC POSITION: Share buttons ab Customer App ke ekdum aakhiri (Footer) mein show honge
+    st.write("---")
+    render_social_share_buttons()
