@@ -4,7 +4,7 @@ import datetime
 import os
 import urllib.parse
 
-# === 1. DATABASE & FOLDER SETUP ===
+# === 1. ADVANCED DATABASE SETUP ===
 def init_db():
     conn = sqlite3.connect("just_order_v5.db")
     cursor = conn.cursor()
@@ -65,7 +65,6 @@ init_db()
 
 # === WHATSAPP BILL UTILITY FUNCTION ===
 def generate_whatsapp_link(phone, name, cart_summary, total_bill, delivery_charge, final_grand_total, pay_status):
-    # Pure bill ka text structure format karna
     bill_text = f"🚨 *JUST ORDER - INVOICE* 🚨\n\n"
     bill_text += f"👤 *Customer:* {name}\n"
     bill_text += f"📅 *Date/Time:* {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
@@ -78,10 +77,7 @@ def generate_whatsapp_link(phone, name, cart_summary, total_bill, delivery_charg
     bill_text += f"💳 *Payment:* {pay_status}\n\n"
     bill_text += f"Thank you for ordering with *Just Order*! 📍"
     
-    # URL Encoding taaki spaces aur emojis break na hon
     encoded_text = urllib.parse.quote(bill_text)
-    
-    # Agar phone number me country code nahi h to India (+91) automatic lagana
     if not phone.startswith('+') and not phone.startswith('91') and len(phone) == 10:
         phone = "91" + phone
         
@@ -197,7 +193,6 @@ if app_mode == "🔑 Owner Admin Dashboard":
                         st.success(f"Added **{new_item_name}** with uploaded image successfully!")
             conn.close()
 
-        # 🌟 THE EXPLICIT NEW FEATURE: ITEM NAME & PRICE EDIT TAB
         with tab_edit_item:
             st.subheader("✏️ Modify/Change Item Details")
             conn = sqlite3.connect("just_order_v5.db")
@@ -211,7 +206,6 @@ if app_mode == "🔑 Owner Admin Dashboard":
                 selected_item_label = st.selectbox("Choose Item to Change:", list(item_map.keys()))
                 target_item_id = item_map[selected_item_label]
                 
-                # Fetch details of that specific item
                 cursor.execute("SELECT item_name, price FROM items WHERE id=?", (target_item_id,))
                 current_name_db, current_price_db = cursor.fetchone()
                 
@@ -244,12 +238,9 @@ if app_mode == "🔑 Owner Admin Dashboard":
                         st.write(f"**Payment Status:** `{p_status}`")
                         st.write(f"**Order Time:** {o_time}")
                         
-                        # 🌟 COD MANUAL WHATSAPP BUTTON (For Delivery boy)
                         if "COD" in p_status or "Cash" in p_status:
-                            # Split name and phone number
                             phone_num = d_to.split("-")[-1].strip() if "-" in d_to else "0000000000"
                             
-                            # Build manual text link trigger
                             manual_wa_url = generate_whatsapp_link(
                                 phone=phone_num, 
                                 name=d_to, 
@@ -395,7 +386,6 @@ else:
             cart_summary_text += f"• {item_name} x {info['qty']} (₹{cost})\n"
             st.write(f"• [{info['type']}] **{item_name}** x {info['qty']} = ₹{cost}")
             
-        # 🌟 FIXED DELIVERY CHARGE ADDITION
         delivery_fee = 30
         grand_total = total_items_price + delivery_fee
         
@@ -408,50 +398,59 @@ else:
         open_box_delivery = st.checkbox("📦 Request Open Box Delivery (Highly Recommended for Grocery/Veggies!)")
         
         st.subheader("📍 Contact & Address Registry")
-        person_a = st.text_input("Sender Name & Phone (Person A):", placeholder="Suraj Kumar - 9876543210")
+        
+        # 🌟 CLEAN PLACEHOLDERS INTEGRATION (As per requirement)
+        person_a_name = st.text_input("Your Full Name *", placeholder="Your Name")
+        person_a_phone = st.text_input("10-Digit Mobile Number *", placeholder="Your Phone Number")
+        address = st.text_area("Full Delivery Address & Clear Village Landmarks *", placeholder="Your Address")
+        
         is_gift = st.checkbox("🎁 Sending this order to someone else? (Deliver to Person B)")
         
         if is_gift:
-            person_b = st.text_input("Receiver Name & Phone (Person B):", placeholder="Amit Kumar - 8877665544")
-            address = st.text_area("Person B Address & Village Landmarks:")
+            person_b = st.text_input("Receiver Name & Phone (Person B):", placeholder="Receiver Name and Number")
+            address = st.text_area("Person B Address & Village Landmarks:", placeholder="Receiver Address")
         else:
-            person_b = person_a
-            address = st.text_area("Your Delivery Address:")
+            person_b = f"{person_a_name} - {person_a_phone}"
             
         payment_choice = st.radio("Select Payment Mode:", ["UPI Online Instant Pay", "Cash on Delivery (COD)"])
         
         # Build automatic link for Online Payment
-        phone_to_send = person_b.split("-")[-1].strip() if "-" in person_b else "0000000000"
+        phone_to_send = person_a_phone.strip() if not is_gift else person_b.split("-")[-1].strip()
         auto_wa_url = generate_whatsapp_link(phone_to_send, person_b, cart_summary_text, total_items_price, delivery_fee, grand_total, "✅ Paid via UPI Online")
         
         if payment_choice == "UPI Online Instant Pay":
-            upi_url = f"upi://pay?pa=justorder@upi&pn=JustOrderV2&am={grand_total}&cu=INR"
-            st.markdown(f'<a href="{upi_url}" style="background-color:#28a745; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block;">🚀 Pay ₹{grand_total} Now</a>', unsafe_allow_html=True)
+            # 🌟 AAPKI ASLI CUSTOM UPI ID SET HERE
+            upi_url = f"upi://pay?pa=suraj.u7870-1@oksbi&pn=Just+Order&am={grand_total}&cu=INR"
+            st.markdown(f'<a href="{upi_url}" style="background-color:#28a745; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block;">🚀 Pay ₹{grand_total} Now via UPI</a>', unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
         # === PLACE ORDER TRIGGER ===
         if st.button("🏁 Place Final Just Order", type="primary"):
-            if not person_a or not address or (is_gift and not person_b):
-                st.error("Fields khali hain! Please address aur phone number bharo.")
+            if not person_a_name.strip() or not person_a_phone.strip() or not address.strip():
+                st.error("⚠️ Sabhi fields bharna anivarya (mandatory) hai! Kripya Naam, Phone Number aur Address sahi se bharein.")
+            elif len(person_a_phone.strip()) < 10:
+                st.error("⚠️ Mobile number kam se kam 10 anko ka hona chahiye!")
             else:
                 time_stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 open_box_flag = 1 if open_box_delivery else 0
                 pay_status_db = "Online Paid" if payment_choice == "UPI Online Instant Pay" else "COD Pending"
+                
+                person_a_combined = f"{person_a_name} - {person_a_phone}"
                 
                 conn = sqlite3.connect("just_order_v5.db")
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO orders (ordered_by, deliver_to, delivery_address, total_amount, service_type, open_box_required, payment_status, order_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (person_a, person_b, address, grand_total, service_type_tag, open_box_flag, pay_status_db, time_stamp))
+                """, (person_a_combined, person_b, address, grand_total, service_type_tag, open_box_flag, pay_status_db, time_stamp))
                 conn.commit()
                 conn.close()
                 
                 st.success(f"🎉 Awesome! Your order has been registered successfully.")
                 st.balloons()
                 
-                # 🌟 AUTOMATIC TRIGGER: FOR ONLINE PAYMENT
+                # AUTOMATIC TRIGGER: FOR ONLINE PAYMENT
                 if payment_choice == "UPI Online Instant Pay":
                     st.info("📲 Redirecting to WhatsApp to send automatic digital bill...")
                     st.markdown(f'<a href="{auto_wa_url}" target="_blank" style="background-color:#25D366; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;">💬 Open WhatsApp & Send Bill Instantly</a>', unsafe_allow_html=True)
