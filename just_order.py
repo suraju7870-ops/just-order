@@ -125,7 +125,7 @@ if app_mode == "🛒 Customer App":
     conn.close()
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Just Order v5.5 • Mandatory Registry Edition")
+st.sidebar.caption("Just Order v5.6 • Live UPI Edition")
 
 
 # ==================================================
@@ -389,7 +389,6 @@ else:
         st.write(f"🛵 **Fixed Delivery Charge: ₹{delivery_fee}**")
         st.write(f"### **Grand Total Bill: ₹{grand_total}**")
         
-        # 🌟 MANDATORY INPUT FIELDS (RED ASTERISK MARKED)
         st.markdown("---")
         st.subheader("📍 Contact & Address Registry")
         
@@ -415,28 +414,24 @@ else:
             
         payment_choice = st.radio("Select Payment Mode:", ["UPI Online Instant Pay", "Cash on Delivery (COD)"])
         
-        # Build text package validation data
         final_customer_registry = f"{person_b_name} - {person_b_phone}"
         
+        # 🌟 LIVE ACTIVATED UPI GATEWAY ROUTE
         if payment_choice == "UPI Online Instant Pay":
-            my_real_upi = "YOUR_UPI_ID_HERE@ybl" # 🌟 Line 317: Apni real GPay/PhonePe ID yahan daalein
-            upi_url = f"upi://pay?pa={my_real_upi}&pn=Just+Order&am={grand_total}&cu=INR"
+            my_real_upi = "suraj.u7870-2@okaxis" 
+            upi_url = f"upi://pay?pa={my_real_upi}&pn=Just+Order+Suraj+Kumar&am={grand_total}&cu=INR"
             st.markdown(f'<a href="{upi_url}" style="background-color:#28a745; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block;">🚀 Pay ₹{grand_total} via UPI</a>', unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # === PLACE ORDER TRIGGER WITH ENFORCED VALIDATION RULES ===
         if st.button("🏁 Place Final Just Order", type="primary"):
-            # 🛡️ Rule 1: Master empty checks
             if not person_a_name or not person_a_phone or not address or (is_gift and (not person_b_name or not person_b_phone)):
                 st.error("❌ Sabhi mandatory (*) fields ko bharna zaroori hai! Kripya naam, mobile aur address check karein.")
             
-            # 🛡️ Rule 2: Phone Number length check (Must be exactly 10 digits)
             elif len(person_a_phone) != 10 or not person_a_phone.isdigit() or (is_gift and (len(person_b_phone) != 10 or not person_b_phone.isdigit())):
                 st.error("❌ Mobile number galat hai! Kripya pure 10-digit ka valid mobile number enter karein.")
                 
             else:
-                # Agar saari details sahi hain, tabhi order save hoga
                 time_stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 pay_status_db = "Online Paid" if payment_choice == "UPI Online Instant Pay" else "COD Pending"
                 
@@ -452,8 +447,8 @@ else:
                 st.success(f"🎉 Awesome! Your order has been registered successfully.")
                 st.balloons()
                 
-                # ONLINE AUTOMATIC REDIRECTION BUTTON TRIGGER
                 if payment_choice == "UPI Online Instant Pay":
                     auto_wa_url = generate_whatsapp_link(person_b_phone, final_customer_registry, cart_summary_text, total_items_price, delivery_fee, grand_total, "✅ Paid via UPI Online")
                     st.info("📲 Redirecting to send automatic digital bill on WhatsApp...")
                     st.markdown(f'<a href="{auto_wa_url}" target="_blank" style="background-color:#25D366; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;">💬 Open WhatsApp & Send Bill Instantly</a>', unsafe_allow_html=True)
+                    
