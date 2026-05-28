@@ -155,7 +155,7 @@ if app_mode == "🛒 Customer App":
     conn.close()
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Just Order v6.6 • Secure Form System")
+st.sidebar.caption("Just Order v6.7 • Secure Form System")
 
 
 # ==================================================
@@ -397,18 +397,18 @@ else:
         
         st.markdown("---")
         
-        # 🌟 EXPLICIT BADGE INJECTION FOR STRICT MANDATORY VALIDATION
         st.subheader("📍 Contact & Address Registry")
-        person_a_name = st.text_input("Your Full Name *", placeholder="e.g. Suhani Kumari")
-        person_a_phone = st.text_input("10-Digit Mobile Number *", placeholder="e.g. 6204051301")
-        address_landmark = st.text_area("Full Delivery Address & Clear Village Landmarks *", placeholder="e.g., Ekanger sarai, bihar road, Near RK Sarso Oil Mill")
+        
+        # 🌟 CHANGES APPLIED HERE: Clean custom placeholders as per requirement
+        person_a_name = st.text_input("Your Full Name *", placeholder="Your Name")
+        person_a_phone = st.text_input("10-Digit Mobile Number *", placeholder="Your Phone Number")
+        address_landmark = st.text_area("Full Delivery Address & Clear Village Landmarks *", placeholder="Your Address")
         
         pay_mode = st.radio("Choose Mode:", ["UPI Online Instant Pay", "Cash on Delivery (COD)"])
         
         # Combine name and phone text for backend compatibility
         person_a_combined = f"{person_a_name} - {person_a_phone}" if (person_a_name and person_a_phone) else ""
         
-        # 🌟 AAPKI CUSTOM ASLI UPI ID ENCODED HERE
         if pay_mode == "UPI Online Instant Pay":
             upi_url = f"upi://pay?pa=suraj.u7870-2@okaxis&pn=Just+Order&am={grand_total}&cu=INR"
             st.markdown(f'<a href="{upi_url}" style="background-color:#28a745; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block; font-size:16px;">🚀 Pay ₹{grand_total} Now via UPI</a>', unsafe_allow_html=True)
@@ -416,7 +416,6 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
 
         if st.button("🏁 Place Final Just Order", type="primary"):
-            # 🌟 STRICT FORM VALIDATION (Checks if any field is empty/blank)
             if not person_a_name.strip() or not person_a_phone.strip() or not address_landmark.strip():
                 st.error("⚠️ Sabhi fields bharna anivarya (mandatory) hai! Kripya Naam, Phone Number aur Address sahi se bharein.")
             elif len(person_a_phone.strip()) < 10:
@@ -437,13 +436,11 @@ else:
                 st.success("🎉 Awesome! Your order has been registered successfully.")
                 st.balloons()
                 
-                # Merchant Action Trigger
                 customer_only_phone = person_a_phone.strip()
                 merchant_wa_link = generate_merchant_whatsapp_link(merchant_phone_db, selected_shop_name, person_a_name, customer_only_phone, summary_txt, address_landmark)
                 
                 st.markdown("### 🔔 Alert Dukandar Instantly")
                 st.markdown(f'<a href="{merchant_wa_link}" target="_blank" style="background-color:#25D366; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block; font-size:16px;">💬 Send Live Order Alert to {selected_shop_name}</a>', unsafe_allow_html=True)
 
-    # Social buttons at the extreme bottom (Footer)
     st.write("---")
     render_social_share_buttons()
